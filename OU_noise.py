@@ -16,7 +16,7 @@ import copy
 class OUNoise:
     """Ornstein-Uhlenbeck process."""
 
-    def __init__(self, size, mu=0., theta=0.15, sigma=0.2, seed=0):
+    def __init__(self, size, mu=0., theta=0.15, sigma=0.2, seed=0, pytorch_device=None):
         """Initialize parameters and noise process."""
         self.size  = size
         self.mu    = mu * np.ones(size) # predefined mean of values
@@ -42,6 +42,7 @@ class OUNoise:
         self.__init_sigma = self.sigma
         
         self.rand  = np.random.default_rng(seed)
+        self.pytorch_device = pytorch_device
         self.reset()
 
     def reset(self):
@@ -52,8 +53,13 @@ class OUNoise:
         """Update internal state and return it as a noise sample."""
         self.state  = (1-self.theta) * self.state + self.theta * self.mu # mean reverting
         self.state += self.sigma * self.rand.normal(size=self.size)      # add random noise
-        return self.state
-
+        if self.pytorch_device is None:
+            # not using pytorch
+            return self.state
+        # using pytorch
+        import torch # import for this scope only
+        return torch.from_numpy(self.state).float().to(self.pytorch_device)
+        
     def scale_noise(self, factor):
         self.sigma = np.clip(factor*self.sigma, self.__min_sigma, self.__max_sigma)
         if factor < 1:
