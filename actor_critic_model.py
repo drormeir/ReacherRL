@@ -40,6 +40,15 @@ class Actor(nn.Module):
         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
         self.fc3.weight.data.uniform_(-3e-3, 3e-3)
 
+    def reset_noise_level(self):
+        self.noise.reset_scale()
+        
+    def noise_decay(self, factor):
+        self.noise.scale_noise(factor)
+    
+    def get_noise_level(self):
+        return self.noise.calc_scale()
+    
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
         x = F.relu(self.fc1(state))
