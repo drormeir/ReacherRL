@@ -74,11 +74,15 @@ class OUNoise:
         return self.calc_scale()
     
     def calc_scale(self):
-        f_sigma = 1. if abs(self.__init_sigma) < 1e-8 else self.sigma/self.__init_sigma
-        if abs(1-self.__init_theta) < 1e-8:
-            return f_sigma
-        f_theta = (1-self.theta)/(1-self.__init_theta)
-        return 0.5*(f_theta + f_sigma)
+        factor_sigma = None if abs(self.__init_sigma) < 1e-8 else self.sigma/self.__init_sigma
+        factor_theta = None if abs(1-self.__init_theta) < 1e-8 else (1-self.theta)/(1-self.__init_theta)
+        if factor_sigma is None and factor_theta is None:
+            return 1.0
+        if factor_sigma is None:
+            return factor_theta
+        if factor_theta is None:
+            return factor_sigma
+        return 0.5*(factor_theta + factor_sigma)
 
     def reset_scale(self):
         self.theta = self.__init_theta
