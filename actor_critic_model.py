@@ -27,11 +27,8 @@ class Actor(nn.Module):
         self.fc1    = nn.Linear(state_size, fc1_units)
         self.fc2    = nn.Linear(fc1_units, fc2_units)
         self.fc3    = nn.Linear(fc2_units, action_size)
-        self.noise  = None
         self.reset_parameters()
         self.device = pytorch_device
-        self.noise  = OUNoise(size=action_size, seed=random_seed, pytorch_device=self.device)
-        self.use_noise_once = False
         if self.device is not None:
             self.to(self.device)
 
@@ -40,30 +37,17 @@ class Actor(nn.Module):
         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
         self.fc3.weight.data.uniform_(-3e-3, 3e-3)
 
-    def reset_noise_level(self):
-        self.noise.reset_scale()
-        
-    def noise_decay(self, factor):
-        self.noise.scale_noise(factor)
-    
-    def get_noise_level(self):
-        return self.noise.calc_scale()
-    
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        if self.use_noise_once:
-            x += self.noise.sample()
-            self.use_noise_once = False
         return torch.tanh(x)
 
-    def eval_numpy(self, state, add_noise=None):
+    def eval_numpy(self, state):
         state = torch.from_numpy(state).float()
         if self.device:
             state = state.to(self.device)
-        self.use_noise_once = add_noise is not None and add_noise
         self.eval() # set model to "eval" mode
         with torch.no_grad():
             action = self(state).cpu().data.numpy()

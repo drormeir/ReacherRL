@@ -49,12 +49,22 @@ class DDPG_Agent():
         self.critic_target    = Critic(state_size, action_size, random_seed, pytorch_device=self.device)
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=lr_critic, weight_decay=weight_decay)
 
+        self.noise            = OUNoise(size=action_size, seed=random_seed)
 
         # Replay memory
-        self.memory = ReplayBuffer(state_size=state_size, action_size=action_size, action_type=np.float32,\
-                                   buffer_size=replay_buffer_size, batch_size=replay_batch_size, seed=random_seed,\
-                                   pytorch_device=self.device)
+        self.memory           = ReplayBuffer(state_size=state_size, action_size=action_size, action_type=np.float32,\
+                                             buffer_size=replay_buffer_size, batch_size=replay_batch_size, seed=random_seed,\
+                                             pytorch_device=self.device)
     
+    def act(self, state, add_noise=None):
+        """Returns actions for given state as per current policy."""
+        ret = self.actor_local.eval_numpy(state)
+        if add_noise is not None and add_noise:
+            ret  = np.arctanh(ret)
+            ret += self.noise.sample()
+            ret  = np.tanh(ret)
+        return ret
+
     def step(self, state, action, reward, next_state, done):
         """Save experience in replay memory, and use random sample from buffer to learn."""
         # Save experience / reward
@@ -105,10 +115,6 @@ class DDPG_Agent():
         self.soft_update(self.critic_local, self.critic_target, self.tau)
         self.soft_update(self.actor_local, self.actor_target, self.tau)                     
 
-    def act(self, state, add_noise=None):
-        """Returns actions for given state as per current policy."""
-        return self.actor_local.eval_numpy(state, add_noise)
-
     def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
         θ_target = τ*θ_local + (1 - τ)*θ_target
@@ -121,6 +127,16 @@ class DDPG_Agent():
         """
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
+            
+    def reset_noise_level(self):
+        self.noise.reset_scale()
+        
+    def noise_decay(self, factor):
+        self.noise.scale_noise(factor)
+    
+    def get_noise_level(self):
+        return self.noise.calc_scale()
+    
             
     def save(self, filename):
         shutil.rmtree(filename,ignore_errors=True) # avoid file not found error
