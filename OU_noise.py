@@ -48,6 +48,8 @@ class OUNoise:
     def reset(self):
         """Reset the internal state (= noise) to mean (mu)."""
         self.state = copy.copy(self.mu)
+        self.theta = self.__init_theta
+        self.sigma = self.__init_sigma
 
     def sample(self):
         """Update internal state and return it as a noise sample."""
@@ -83,7 +85,3 @@ class OUNoise:
         if factor_theta is None:
             return factor_sigma
         return 0.5*(factor_theta + factor_sigma)
-
-    def reset_scale(self):
-        self.theta = self.__init_theta
-        self.sigma = self.__init_sigma

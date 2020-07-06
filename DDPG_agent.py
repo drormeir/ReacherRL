@@ -129,7 +129,7 @@ class DDPG_Agent():
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
             
     def reset_noise_level(self):
-        self.noise.reset_scale()
+        self.noise.reset()
         
     def noise_decay(self, factor):
         self.noise.scale_noise(factor)
