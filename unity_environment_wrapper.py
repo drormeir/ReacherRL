@@ -1,5 +1,6 @@
 from unityagents import UnityEnvironment
 import numpy as np
+from collections import deque
 
 class unity_env(UnityEnvironment):
 
@@ -81,11 +82,9 @@ class unity_env(UnityEnvironment):
             score_window_size = self.scores_window.maxlen
         self.all_scores        = []                              # list containing scores from each episode
         self.scores_window     = deque(maxlen=score_window_size) # last recent scores
-        self.__update_curr_window_score()
-        self.__set_curr_window_as_best()
-        self.best_test_score   = -np.inf
-        self.best_test_average = -np.inf
-        self.best_test_stdev   = np.inf
+        self.__recalc_curr_window_score()
+        self.__set_curr_score_window_as_best()
+        self.__set_curr_score_window_as_best_test()
         self.improvement       = 0
 
     def str_curr_window_score(self):
@@ -134,8 +133,8 @@ class unity_env(UnityEnvironment):
         next_state   = env_info.vector_observations[self.ind_brain] # get the next state
         reward       = env_info.rewards[self.ind_brain]             # get the reward
         done         = env_info.local_done[self.ind_brain]          # see if episode has finished
-        self.nsteps += 1
-        self.total_score_in_episode += reward
+        self.number_steps_in_episode += 1
+        self.total_score_in_episode  += reward
         return next_state, reward, done, env_info
 
     def __test_improvement(self, agent, output_filename):
@@ -150,7 +149,7 @@ class unity_env(UnityEnvironment):
             self.scores_window.append(env.total_score_in_episode)
             print("\rEpisode: {} out of: {}".format(i_episode+1,score_window_size),end="")
         print("\n")
-        self.__update_curr_window_score()
+        self.__recalc_curr_window_score()
         if self.curr_window_score <= self.best_test_score:
             print("Current test score {:5.2f} is worse than previous test score {:5.2f}...".format(self.curr_window_score,\
                                                                                                    self.best_test_score))
@@ -158,10 +157,8 @@ class unity_env(UnityEnvironment):
         print("Current test score {:5.2f} is better than previous test score {:5.2f}...".format(self.curr_window_score,\
                                                                                                 self.best_test_score))        
         # saving test score
-        self.best_test_score   = self.curr_window_score
-        self.best_test_average = self.curr_window_average
-        self.best_test_stdev   = self.curr_window_stdev
-        self.__set_curr_window_as_best()
+        self.__set_curr_score_window_as_best_test()
+        self.__set_curr_score_window_as_best()
         self.improvement = 0 # train may continue
         agent.save(output_filename)
         return True
@@ -196,7 +193,7 @@ class unity_env(UnityEnvironment):
         current_score_is_better_than_before = completed_episode_score > self.curr_window_average
         self.scores_window.append(completed_episode_score)       # save most recent score
         self.all_scores.append(completed_episode_score)          # save most recent score
-        self.__update_curr_window_score()
+        self.__recalc_curr_window_score()
         self.improvement  = 0 # train may continue
         num_episodes  = len(self.all_scores)
         if num_episodes < self.scores_window.maxlen:
@@ -213,7 +210,7 @@ class unity_env(UnityEnvironment):
             # no score improvement anymore :-(
             self.improvement = -1 # train should stop
 
-    def __update_curr_window_score(self):
+    def __recalc_curr_window_score(self):
         curr_len = len(self.scores_window)
         self.curr_window_average = np.mean(self.scores_window) if curr_len > 0 else -np.inf
         # estimate standard deviation of entire population
@@ -226,7 +223,12 @@ class unity_env(UnityEnvironment):
         self.best_window_stdev   = self.curr_window_stdev
         self.temp_window_average = self.curr_window_average
         self.best_window_episode = len(self.all_scores) # used for check number of episodes since best episode
-        
+ 
+    def __set_curr_score_window_as_best_test(self):
+        self.best_test_score   = self.curr_window_score
+        self.best_test_average = self.curr_window_average
+        self.best_test_stdev   = self.curr_window_stdev
+
     def __goal_reached_first_time(self):
         if self.goal:
             return False
