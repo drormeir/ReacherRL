@@ -13,8 +13,16 @@ import shutil
 class DDPG_Agent():
     """Interacts with and learns from the environment."""
     
-    def __init__(self, state_size, action_size, replay_buffer_size = int(1e5), replay_batch_size=128, random_seed=0, gamma=0.99,\
-                 tau=1e-3, lr_actor=1e-4, lr_critic=1e-3, weight_decay=0, use_cuda=False):
+    def __init__(self, state_size, action_size,\
+                 replay_buffer_size = int(1e5),\
+                 replay_batch_size  = 128,\
+                 random_seed        = 0,\
+                 gamma              = 0.99,\
+                 tau                = 1e-3,\
+                 lr_actor           = 1e-4,\
+                 lr_critic          = 1e-3,\
+                 use_cuda           = False,
+                 verbose_level      = 1):
         """Initialize an Agent object.
         
         Params
@@ -28,7 +36,6 @@ class DDPG_Agent():
             tau(float):               for soft update of target parameters
             lr_actor(float):          learning rate of the actor 
             lr_critic(float):         learning rate of the critic
-            weight_decay(float)       L2 weight decay
         """
         self.state_size       = state_size
         self.action_size      = action_size
@@ -42,12 +49,15 @@ class DDPG_Agent():
         # Actor Network (w/ Target Network)
         self.actor_local      = Actor(state_size, action_size, random_seed, pytorch_device=self.device)
         self.actor_target     = Actor(state_size, action_size, random_seed, pytorch_device=self.device)
-        self.actor_optimizer  = optim.Adam(self.actor_local.parameters(), lr=lr_actor)
-
+        self.actor_lr_max     = lr_actor
         # Critic Network (w/ Target Network)
         self.critic_local     = Critic(state_size, action_size, random_seed, pytorch_device=self.device)
         self.critic_target    = Critic(state_size, action_size, random_seed, pytorch_device=self.device)
-        self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=lr_critic, weight_decay=weight_decay)
+        self.critic_lr_max    = lr_critic
+
+        self.lr_min           = 1e-5
+        self.lr_decay         = 0.5
+        self.reset_lr()
 
         self.noise            = OUNoise(size=action_size, seed=random_seed)
 
@@ -55,7 +65,8 @@ class DDPG_Agent():
         self.memory           = ReplayBuffer(state_size=state_size, action_size=action_size, action_type=np.float32,\
                                              buffer_size=replay_buffer_size, batch_size=replay_batch_size, seed=random_seed,\
                                              pytorch_device=self.device)
-    
+        self.verbose_level    = verbose_level
+
     def act(self, state, add_noise=None):
         """Returns actions for given state as per current policy."""
         ret = self.actor_local.eval_numpy(state)
@@ -137,7 +148,32 @@ class DDPG_Agent():
     def get_noise_level(self):
         return self.noise.calc_scale()
     
+    def learning_rate_step(self):
+        if self.lr_at_minimum:
+            return
+        self.actor_lr      = max(self.actor_lr*self.lr_decay, self.lr_min)
+        self.critic_lr     = max(self.critic_lr*self.lr_decay, self.lr_min)
+        self.lr_at_minimum = self.critic_lr <= self.lr_min and self.actor_lr <= self.lr_min
+        if self.verbose_level > 1:
+            print("\nChanging learning rates to: actor:{:.4e} critic:{:.4e}".format(self.actor_lr,self.critic_lr))
+        for param_group in self.actor_optimizer.param_groups:
+            param_group['lr'] = self.actor_lr
+        for param_group in self.critic_optimizer.param_groups:
+            param_group['lr'] = self.critic_lr
+        
+
+    def is_lr_at_minimum(self):
+        if self.lr_at_minimum and self.verbose_level > 1:
+            print("\nCannot reduce learning rate because it is already at the minimum: {:.4e}".format(self.lr_min))
+        return self.lr_at_minimum
             
+    def reset_lr(self):
+        self.actor_lr         = self.actor_lr_max
+        self.actor_optimizer  = optim.Adam(self.actor_local.parameters(), lr=self.actor_lr)
+        self.critir_lr        = self.critic_lr_max
+        self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=self.critir_lr)
+        self.lr_at_minimum    = False
+
     def save(self, filename):
         shutil.rmtree(filename,ignore_errors=True) # avoid file not found error
         os.makedirs(filename)
