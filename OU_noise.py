@@ -50,11 +50,16 @@ class OUNoise:
         self.state = copy.copy(self.mu)
         self.theta = self.__init_theta
         self.sigma = self.__init_sigma
+        self.reset_max_amp()
+
+    def reset_max_amp(self):
+        self.max_amp = 0
 
     def sample(self):
         """Update internal state and return it as a noise sample."""
         self.state  = (1-self.theta) * self.state + self.theta * self.mu # mean reverting
         self.state += self.sigma * self.rand.normal(size=self.size)      # add random noise
+        self.max_amp = max(self.max_amp,np.max(np.abs(self.state)))
         if self.pytorch_device is None:
             # not using pytorch
             return self.state
