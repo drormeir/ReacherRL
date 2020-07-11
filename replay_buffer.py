@@ -37,7 +37,14 @@ class ReplayBuffer:
         self.res_rewards     = np.empty((self.batch_size,1),                dtype=np.float32)
         self.res_next_states = np.empty((self.batch_size,self.state_size),  dtype=np.float32)
         self.res_dones       = np.empty((self.batch_size,1),                dtype=np.float32)
-        
+    
+    def reset(self):
+        self.current_len = 0
+
+    def __iadd__(self, other):
+        for i in range(min(other.current_len,other.buffer_size)):
+            self.add(other.states[i,:],other.actions[i,:],other.rewards[i,0],other.next_states[i,:],other.dones[i,0])
+
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
         ind_pos                     = self.current_len % self.buffer_size
