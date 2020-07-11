@@ -1,24 +1,26 @@
 from unityagents import UnityEnvironment
 import numpy as np
 from collections import deque
+import shutil
 
 class unity_env(UnityEnvironment):
 
-    def __init__(self, file_name, ind_brain=0, no_graphics=False, verbose=True, max_steps_in_single_episode=1000, score_goal=None,\
+    def __init__(self, file_name, ind_brain=0, no_graphics=False, verbose_level=1, max_steps_in_single_episode=1000, score_goal=30,\
                  score_window_size=100):
         super().__init__(file_name=file_name, no_graphics=no_graphics)
-        self.ind_brain   = ind_brain        
-        self.brain_name  = super().brain_names[ind_brain]
-        self.brain       = super().brains[self.brain_name]
-        self.action_size = self.brain.vector_action_space_size
-        env_info         = super().reset(train_mode=True)[self.brain_name] # reset the environment
-        state            = env_info.vector_observations[self.ind_brain]    # get the current state
-        self.state_size  = len(state)
+        self.ind_brain     = ind_brain        
+        self.brain_name    = super().brain_names[ind_brain]
+        self.brain         = super().brains[self.brain_name]
+        self.action_size   = self.brain.vector_action_space_size
+        env_info           = super().reset(train_mode=True)[self.brain_name] # reset the environment
+        state              = env_info.vector_observations[self.ind_brain]    # get the current state
+        self.state_size    = len(state)
         self.max_steps_in_single_episode   = max_steps_in_single_episode
-        self.score_goal  = score_goal
-        self.goal        = False
+        self.score_goal    = score_goal
+        self.goal          = False
+        self.verbose_level = verbose_level
         self.reset_all_scores(score_window_size)
-        if verbose:
+        if self.verbose_level > 0:
             print("Selected brain name: ", self.brain_name)
             print("Selected brain:      ", self.brain)
             print("Number of actions:   ", self.action_size)
@@ -28,7 +30,7 @@ class unity_env(UnityEnvironment):
           
     
 
-    def train(self, agent, output_filename, n_episodes = 10000, score_window_size=None, noise_minimal=0.01, noise_decay=0.99):
+    def train(self, agent, output_filename, n_episodes = 10000, score_window_size=None, noise_minimal=0.01, noise_decay=0.995):
         """Deep Q-Learning.
 
         Params
@@ -44,30 +46,37 @@ class unity_env(UnityEnvironment):
         agent.reset_noise_level()                    # initialize noise
         temp_checkpoint_name = "temp_checkpoint.pth"
         shutil.rmtree(temp_checkpoint_name,ignore_errors=True) # avoid file not found error
-        while env.improvement >= 0:
-            self.train_agent_on_single_episode(agent)            
-            if agent.get_noise_level() > noise_minimal:
-                agent.scale_noise(noise_decay)
+        while self.improvement >= 0:
+            curr_theta = agent.noise.theta
+            curr_sigma = agent.noise.sigma
+            curr_noise_level = agent.get_noise_level()
+            if self.train_agent_on_single_episode(agent):
+                if agent.get_noise_level() > noise_minimal:
+                    agent.scale_noise(noise_decay)
             self.__update_statistics_with_completed_episode_score()
-            end         = "\n" if env.improvement > 0 else ""
-            ind_episode = len(env.all_scores)
-            print('\rEpisode {}\t {}'.format(ind_episode,env.str_curr_window_score()), end=end)
+            ind_episode = len(self.all_scores)
+            if self.verbose_level > 1:
+                print('Episode {:4} score={:5.2f} noise:[level={:6.4f} theta={:6.4f} sigma={:6.4f} max={:5.2f}] curr window= {}'.format(ind_episode,\
+                self.total_score_in_episode, curr_noise_level, curr_theta, curr_sigma, agent.get_recent_episode_noise_max_amp(), self.str_curr_window_score()))
+            elif self.verbose_level > 0:
+                end         = "\n" if self.improvement > 0 else ""
+                print('\rEpisode {}\t {}'.format(ind_episode,self.str_curr_window_score()), end=end)
             if self.__goal_reached_first_time():
                 print('\nEnvironment goal reached in {:d} episodes!'.format(ind_episode))
             if ind_episode >= n_episodes:
                 # rare case: maximum number of episodes  -->  end training loop in any case
-                self.__test_improvement(env, agent, output_filename)
+                self.__test_improvement(agent, output_filename)
                 break
-            if env.improvement > 0:
+            if self.improvement > 0:
                 print('Saving checkpoint...')
                 agent.save(temp_checkpoint_name)
                 continue
-            if env.improvement == 0:
+            if self.improvement == 0:
                 continue
             # env.improvement < 0   -->  environment signals no more improvements...
             # test if reduce learning rate can make things any better
             agent.load(temp_checkpoint_name)
-            if not self.__test_improvement(env, agent, output_filename):
+            if not self.__test_improvement(agent, output_filename):
                 break
             if agent.is_lr_at_minimum():
                 break
@@ -75,7 +84,7 @@ class unity_env(UnityEnvironment):
 
         shutil.rmtree(temp_checkpoint_name,ignore_errors=True) # avoid file not found error
         print('\nNo more improvements. End of training.')
-        return env.scores, env.best_test_score, env.best_test_average, env.best_test_stdev
+        return self.scores, self.best_test_score, self.best_test_average, self.best_test_stdev
 
     def reset_all_scores(self, score_window_size=None):
         if score_window_size is None:
@@ -87,23 +96,20 @@ class unity_env(UnityEnvironment):
         self.__set_curr_score_window_as_best_test()
         self.improvement       = 0
 
-    def str_curr_window_score(self):
-        return "Composite={:5.2f}\t Average={:5.2f}\t Stdev={:5.2f}".format(self.curr_window_score,\
-                                                                            self.curr_window_average,\
-                                                                            self.curr_window_stdev)
     
     def train_agent_on_single_episode(self, agent, max_steps_in_single_episode=None):
         if max_steps_in_single_episode is None:
             max_steps_in_single_episode = self.max_steps_in_single_episode
+        agent.prepare_for_new_episode()
         state = self.reset(train_mode=True) # reset the environment and current episode score
         for i_step in range(max_steps_in_single_episode):
             action = agent.act(state, add_noise=True) # select an action with noise exploration
             next_state, reward, done, _ = self.step(action)
-            agent.step(state, action, reward, next_state, done)
+            agent.step(state, reward, next_state, done)
             if done:
                 break
             state  = next_state
-        return self.total_score_in_episode
+        return agent.has_any_rewards
     
     def test_agent_on_single_episode(self, agent, max_steps_in_single_episode=None, verbose=True):
         if verbose:
@@ -112,56 +118,30 @@ class unity_env(UnityEnvironment):
             max_steps_in_single_episode = self.max_steps_in_single_episode
         state = self.reset(train_mode=False) # reset the environment
         for i_step in range(max_steps_in_single_episode):
-            action            = agent.act(state)     # select an action
+            action            = agent.act(state)  # select an action
             state, _, done, _ = self.step(action)
             if done:
                 break
         if verbose:
-            print("Agent: Test on single episode is over. Number of steps: {}  score: {5.2f}"\
+            print("Agent: Test on single episode is over. Number of steps: {}  score: {:5.2f}"\
                   .format(self.number_steps_in_episode, self.total_score_in_episode))
         return self.total_score_in_episode
     
-    def reset(self, train_mode):
-        env_info    = super().reset(train_mode=train_mode)[self.brain_name] # reset the environment
-        state       = env_info.vector_observations[self.ind_brain]          # get the current state
-        self.number_steps_in_episode = 0
-        self.total_score_in_episode  = 0
-        return state
-    
-    def step(self, action):
-        env_info     = super().step(action)[self.brain_name]        # send the action to the environment
-        next_state   = env_info.vector_observations[self.ind_brain] # get the next state
-        reward       = env_info.rewards[self.ind_brain]             # get the reward
-        done         = env_info.local_done[self.ind_brain]          # see if episode has finished
-        self.number_steps_in_episode += 1
-        self.total_score_in_episode  += reward
-        return next_state, reward, done, env_info
-
-    def __test_improvement(self, agent, output_filename):
-        print("\nCompare last checkpoint against best test score so far...");
-        score_window_size = self.scores_window.maxlen
-        for i_episode in range(score_window_size):
-            state = env.reset(train_mode=True) # reset the environment
-            done  = False
-            while not done:
-                action, _         = agent.act(state)     # select an action
-                state, _, done, _ = env.step(action)
-            self.scores_window.append(env.total_score_in_episode)
-            print("\rEpisode: {} out of: {}".format(i_episode+1,score_window_size),end="")
-        print("\n")
-        self.__recalc_curr_window_score()
-        if self.curr_window_score <= self.best_test_score:
-            print("Current test score {:5.2f} is worse than previous test score {:5.2f}...".format(self.curr_window_score,\
-                                                                                                   self.best_test_score))
-            return False
-        print("Current test score {:5.2f} is better than previous test score {:5.2f}...".format(self.curr_window_score,\
-                                                                                                self.best_test_score))        
-        # saving test score
-        self.__set_curr_score_window_as_best_test()
-        self.__set_curr_score_window_as_best()
-        self.improvement = 0 # train may continue
-        agent.save(output_filename)
-        return True
+    def test_random_agent_on_single_episode(self, agent, max_steps_in_single_episode=None, verbose=True):
+        if verbose:
+            print("Agent: Test on single episode starts...")
+        if max_steps_in_single_episode is None:
+            max_steps_in_single_episode = self.max_steps_in_single_episode
+        state = self.reset(train_mode=True) # reset the environment
+        for i_step in range(max_steps_in_single_episode):
+            action            = agent.random_action()    # select an action
+            state, _, done, _ = self.step(action)
+            if done:
+                break
+        if verbose:
+            print("Agent: Test on single episode is over. Number of steps: {}  score: {:5.2f}"\
+                  .format(self.number_steps_in_episode, self.total_score_in_episode))
+        return self.total_score_in_episode
     
     def test_agent_on_many_episodes(self, agent, n_episodes=None, max_steps_in_single_episode=None, verbose=True):
         if n_episodes is None:
@@ -180,14 +160,59 @@ class unity_env(UnityEnvironment):
                     break
             scores.append(self.total_score_in_episode)
             if verbose:
-                print("\rEpisode: {} out of: {}".format(i_episode+1,n_episodes),end="")
+                print("\rEpisode: {} out of: {} ended with score: {:5.2f}".format(i_episode+1,n_episodes,self.total_score_in_episode),end="")
         scores_mean      = np.mean(scores)
         scores_stdev     = np.std(scores,ddof=1) if len(scores) > 1 else np.inf
         scores_composite = scores_mean - scores_stdev
         if verbose:
-            print("\nComposite={:5.2f}\t Average={:5.2f}\t Stdev={:5.2f}".format(scores_composite, scores_mean, scores_stdev))
+            print("\nTest results on {} episodes: Composite={:5.2f} Average={:5.2f} Stdev={:5.2f}".format(n_episodes,scores_composite, scores_mean, scores_stdev))
         return scores_composite, scores_mean, scores_stdev, scores
+
+    def reset(self, train_mode):
+        env_info    = super().reset(train_mode=train_mode)[self.brain_name] # reset the environment
+        state       = env_info.vector_observations[self.ind_brain]          # get the current state
+        self.number_steps_in_episode = 0
+        self.total_score_in_episode  = 0
+        return state
     
+    def step(self, action):
+        env_info     = super().step(action)[self.brain_name]        # send the action to the environment
+        next_state   = env_info.vector_observations[self.ind_brain] # get the next state
+        reward       = env_info.rewards[self.ind_brain]             # get the reward
+        done         = env_info.local_done[self.ind_brain]          # see if episode has finished
+        self.number_steps_in_episode += 1
+        self.total_score_in_episode  += reward
+        return next_state, reward, done, env_info
+
+    def str_curr_window_score(self):
+        return "Composite={:5.2f} Average={:5.2f} Stdev={:5.2f}".format(self.curr_window_score, self.curr_window_average, self.curr_window_stdev)
+
+    def __test_improvement(self, agent, output_filename):
+        print("\nCompare last checkpoint against best test score so far...");
+        score_window_size = self.scores_window.maxlen
+        for i_episode in range(score_window_size):
+            state = self.reset(train_mode=True) # reset the environment
+            done  = False
+            while not done:
+                action            = agent.act(state)     # select an action
+                state, _, done, _ = self.step(action)
+            self.scores_window.append(self.total_score_in_episode)
+            print("\rEpisode: {} out of: {}".format(i_episode+1,score_window_size),end="")
+        print("\n")
+        self.__recalc_curr_window_score()
+        if self.curr_window_score <= self.best_test_score:
+            print("Current test score {:5.2f} is worse than previous test score {:5.2f}...".format(self.curr_window_score,\
+                                                                                                   self.best_test_score))
+            return False
+        print("Current test score {:5.2f} is better than previous test score {:5.2f}...".format(self.curr_window_score,\
+                                                                                                self.best_test_score))        
+        # saving test score
+        self.__set_curr_score_window_as_best_test()
+        self.__set_curr_score_window_as_best()
+        self.improvement = 0 # train may continue
+        agent.save(output_filename)
+        return True
+        
     def __update_statistics_with_completed_episode_score(self):
         completed_episode_score = self.total_score_in_episode
         current_score_is_better_than_before = completed_episode_score > self.curr_window_average
