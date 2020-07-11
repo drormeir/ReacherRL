@@ -21,7 +21,8 @@ class DDPG_Agent():
                  tau                = 1e-3,\
                  lr_actor           = 1e-4,\
                  lr_critic          = 1e-3,\
-                 use_cuda           = False,
+                 noise_sigma        = 0.2,\
+                 use_cuda           = False,\
                  verbose_level      = 1):
         """Initialize an Agent object.
         
@@ -59,7 +60,7 @@ class DDPG_Agent():
         self.lr_decay         = 0.5
         self.reset_lr()
 
-        self.noise            = OUNoise(size=action_size, seed=random_seed)
+        self.noise            = OUNoise(size=action_size, seed=random_seed, sigma=noise_sigma)
 
         # Replay memory
         self.memory           = ReplayBuffer(state_size=state_size, action_size=action_size, action_type=np.float32,\
@@ -75,6 +76,9 @@ class DDPG_Agent():
             ret += self.noise.sample()
             ret  = np.tanh(ret)
         return ret
+
+    def random_action(self):
+        return np.random.uniform(low=-1.0,high=1.0,size=self.action_size)
 
     def step(self, state, action, reward, next_state, done):
         """Save experience in replay memory, and use random sample from buffer to learn."""
