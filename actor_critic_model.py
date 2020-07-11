@@ -42,7 +42,7 @@ class Actor(nn.Module):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        return torch.tanh(x)
+        return x
 
     def eval_numpy(self, state):
         state = torch.from_numpy(state).float()

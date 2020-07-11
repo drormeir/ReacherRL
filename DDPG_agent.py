@@ -15,13 +15,14 @@ class DDPG_Agent():
     
     def __init__(self, state_size, action_size,\
                  replay_buffer_size = int(1e5),\
-                 replay_batch_size  = 128,\
+                 replay_batch_size  = 256,\
                  random_seed        = 0,\
                  gamma              = 0.99,\
                  tau                = 1e-3,\
-                 lr_actor           = 1e-4,\
-                 lr_critic          = 1e-3,\
+                 lr_actor           = 1e-2,\
+                 lr_critic          = 1e-2,\
                  noise_sigma        = 0.2,\
+                 noise_theta        = 0.15,\
                  use_cuda           = False,\
                  verbose_level      = 1):
         """Initialize an Agent object.
@@ -38,6 +39,7 @@ class DDPG_Agent():
             lr_actor(float):          learning rate of the actor 
             lr_critic(float):         learning rate of the critic
         """
+        self.verbose_level    = verbose_level
         self.state_size       = state_size
         self.action_size      = action_size
         self.tau              = tau
@@ -45,7 +47,8 @@ class DDPG_Agent():
         if use_cuda:
             use_cuda = torch.cuda.is_available()
         device_name = "cuda:0" if use_cuda else "cpu"
-        print("Initializing DDPG_Agent with PyTorch device named:",device_name)
+        if self.verbose_level > 0:
+            print("Initializing DDPG_Agent with PyTorch device named:",device_name)
         self.device = torch.device(device_name)
         # Actor Network (w/ Target Network)
         self.actor_local      = Actor(state_size, action_size, random_seed, pytorch_device=self.device)
@@ -59,32 +62,43 @@ class DDPG_Agent():
         self.lr_min           = 1e-5
         self.lr_decay         = 0.5
         self.reset_lr()
-
-        self.noise            = OUNoise(size=action_size, seed=random_seed, sigma=noise_sigma)
+        self.noise            = OUNoise(size=action_size, seed=random_seed, sigma=noise_sigma, theta=noise_theta)
 
         # Replay memory
         self.memory           = ReplayBuffer(state_size=state_size, action_size=action_size, action_type=np.float32,\
                                              buffer_size=replay_buffer_size, batch_size=replay_batch_size, seed=random_seed,\
                                              pytorch_device=self.device)
-        self.verbose_level    = verbose_level
+        self.recent_memory    = ReplayBuffer(state_size=state_size, action_size=action_size, action_type=np.float32,\
+                                             buffer_size=replay_buffer_size, batch_size=replay_batch_size, seed=random_seed,\
+                                             pytorch_device=self.device)
+        self.prepare_for_new_episode()
+
+
+    def prepare_for_new_episode(self):
+        self.recent_memory.reset()
+        self.has_any_rewards = False
+        self.noise.reset_max_amp()
 
     def act(self, state, add_noise=None):
         """Returns actions for given state as per current policy."""
-        ret = self.actor_local.eval_numpy(state)
+        raw_action = self.actor_local.eval_numpy(state)
         if add_noise is not None and add_noise:
-            ret  = np.arctanh(ret)
-            ret += self.noise.sample()
-            ret  = np.tanh(ret)
-        return ret
+            raw_action += self.noise.sample()
+        self.raw_action = raw_action
+        return np.tanh(raw_action)
 
     def random_action(self):
         return np.random.uniform(low=-1.0,high=1.0,size=self.action_size)
 
-    def step(self, state, action, reward, next_state, done):
+    def step(self, state, reward, next_state, done):
         """Save experience in replay memory, and use random sample from buffer to learn."""
         # Save experience / reward
-        self.memory.add(state, action, reward, next_state, done)
-
+        self.recent_memory.add(state, self.raw_action, reward, next_state, done)
+        self.has_any_rewards = self.has_any_rewards or abs(reward) >= 1e-8
+        # learn only on completed episode where any reward exists!
+        if not done or not self.has_any_rewards:
+            return
+        self.memory += self.recent_memory
         # Learn, if enough samples are available in memory
         experiences = self.memory.sample()
         if experiences is None:
@@ -146,12 +160,15 @@ class DDPG_Agent():
     def reset_noise_level(self):
         self.noise.reset()
         
-    def noise_decay(self, factor):
+    def scale_noise(self, factor):
         self.noise.scale_noise(factor)
     
     def get_noise_level(self):
         return self.noise.calc_scale()
     
+    def get_recent_episode_noise_max_amp(self):
+        return self.noise.max_amp
+
     def learning_rate_step(self):
         if self.lr_at_minimum:
             return
@@ -177,6 +194,7 @@ class DDPG_Agent():
         self.critir_lr        = self.critic_lr_max
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=self.critir_lr)
         self.lr_at_minimum    = False
+
 
     def save(self, filename):
         shutil.rmtree(filename,ignore_errors=True) # avoid file not found error
