@@ -23,8 +23,8 @@ class ReplayBuffer:
         self.action_type = action_type
         self.batch_size  = batch_size
         self.buffer_size = buffer_size
+        self.seed        = seed
         self.rand        = np.random.default_rng(seed)
-        self.current_len = 0
         self.pytorch_device = pytorch_device
         self.states      = np.empty((self.buffer_size,self.state_size),  dtype=np.float32)
         self.actions     = np.empty((self.buffer_size,self.action_size), dtype=action_type)
@@ -37,13 +37,20 @@ class ReplayBuffer:
         self.res_rewards     = np.empty((self.batch_size,1),                dtype=np.float32)
         self.res_next_states = np.empty((self.batch_size,self.state_size),  dtype=np.float32)
         self.res_dones       = np.empty((self.batch_size,1),                dtype=np.float32)
-    
+        self.reset()
+
+    def clone(self):
+        return ReplayBuffer(state_size=self.state_size, action_size=self.action_size, action_type=self.action_type,\
+        buffer_size=self.buffer_size, batch_size=self.batch_size, seed=self.seed, pytorch_device=self.pytorch_device)
+
     def reset(self):
         self.current_len = 0
 
     def __iadd__(self, other):
         for i in range(min(other.current_len,other.buffer_size)):
             self.add(other.states[i,:],other.actions[i,:],other.rewards[i,0],other.next_states[i,:],other.dones[i,0])
+        return self # must return this object or else it will be destoryed
+
 
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
@@ -54,7 +61,7 @@ class ReplayBuffer:
         self.rewards[ind_pos][0]    = reward
         self.next_states[ind_pos,:] = next_state
         self.dones[ind_pos][0]      = done
-    
+
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
         curr_len = min(self.current_len,self.buffer_size)
