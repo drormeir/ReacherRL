@@ -5,7 +5,10 @@ import numpy as np
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples."""
 
-    def __init__(self, state_size, action_size, action_type, buffer_size=int(1e5), batch_size=128, seed=0, pytorch_device=None):
+    def __init__(self, state_size, action_size, action_type, buffer_size=int(1e5), batch_size=128, seed=0,\
+                 no_reward_value    = 0.0,\
+                 no_reward_dropout  = 0.0,\
+                 pytorch_device     = None):
         """Initialize a ReplayBuffer object.
 
         Params
@@ -25,6 +28,8 @@ class ReplayBuffer:
         self.buffer_size = buffer_size
         self.seed        = seed
         self.rand        = np.random.default_rng(seed)
+        self.no_reward_value   = no_reward_value
+        self.no_reward_dropout = no_reward_dropout
         self.pytorch_device = pytorch_device
         self.states      = np.empty((self.buffer_size,self.state_size),  dtype=np.float32)
         self.actions     = np.empty((self.buffer_size,self.action_size), dtype=action_type)
@@ -41,10 +46,13 @@ class ReplayBuffer:
 
     def clone(self):
         return ReplayBuffer(state_size=self.state_size, action_size=self.action_size, action_type=self.action_type,\
-        buffer_size=self.buffer_size, batch_size=self.batch_size, seed=self.seed, pytorch_device=self.pytorch_device)
+        buffer_size=self.buffer_size, batch_size=self.batch_size, seed=self.seed,\
+        no_reward_value=self.no_reward_value, no_reward_dropout=self.no_reward_dropout,\
+        pytorch_device=self.pytorch_device)
 
     def reset(self):
         self.current_len = 0
+        self.count_entered_no_reward = 0
 
     def __iadd__(self, other):
         for i in range(min(other.current_len,other.buffer_size)):
@@ -54,6 +62,12 @@ class ReplayBuffer:
 
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
+        if not done and (abs(reward) < 1e-8):
+            no_reward_dropout = self.count_entered_no_reward * self.no_reward_dropout / (self.current_len + 1)
+            if (no_reward_dropout > 0.0) and (self.rand.uniform() < no_reward_dropout):
+                return
+            self.count_entered_no_reward += 1
+            reward = self.no_reward_value
         ind_pos                     = self.current_len % self.buffer_size
         self.current_len           += 1
         self.states[ind_pos,:]      = state
