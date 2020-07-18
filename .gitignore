@@ -4,4 +4,3 @@ Reacher_Windows_x86_64/
 __pycache__/
 unity-environment.log
 temp_checkpoint.pth/
-results/
