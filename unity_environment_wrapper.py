@@ -55,8 +55,7 @@ class unity_env(UnityEnvironment):
             print("score_window_size  =",self.scores_window.maxlen)
 
         agent.reset_noise_level()                    # initialize noise
-        temp_checkpoint_name = "temp_checkpoint.pth"
-        shutil.rmtree(temp_checkpoint_name,ignore_errors=True) # avoid file not found error
+        len_save_scores = 0
         while self.improvement >= 0:
             curr_theta = agent.noise.theta
             curr_sigma = agent.noise.sigma
@@ -92,26 +91,18 @@ class unity_env(UnityEnvironment):
                 print('\nEnvironment goal reached in {:d} episodes!'.format(num_episodes))
             if num_episodes >= max_num_episodes:
                 # rare case: maximum number of episodes  -->  end training loop in any case
-                self.__test_improvement(agent, output_filename)
                 break
             if self.improvement > 0:
                 print('Saving checkpoint...')
-                agent.save(temp_checkpoint_name)
+                agent.save(output_filename)
+                len_save_scores = len(self.all_scores)
                 continue
             if self.improvement == 0:
                 continue
             # env.improvement < 0   -->  environment signals no more improvements...
-            # test if reduce learning rate can make things any better
-            agent.load(temp_checkpoint_name)
-            if not self.__test_improvement(agent, output_filename):
-                break
-            if agent.is_lr_at_minimum():
-                break
-            agent.learning_rate_step()
-
-        shutil.rmtree(temp_checkpoint_name,ignore_errors=True) # avoid file not found error
+            break
         print('\nNo more improvements. End of training.')
-        return self.all_scores, self.best_test_score, self.best_test_average, self.best_test_stdev
+        return self.all_scores[:len_save_scores], self.best_test_score, self.best_test_average, self.best_test_stdev
 
     def reset_all_scores(self, score_window_size=None):
         if score_window_size is None:

@@ -10,9 +10,9 @@ The purpose of the project is to build and train a single agent that tries to ma
 
 This problem is episodic, where each episode is consists of 1000 steps. The environment provides a reward of +0.1 for each step that the agent's hand is in the goal location, and zero otherwise. Thus, the goal of the agent is to maintain its position at the target location for as many time steps as possible. The minimal requirement for success is to have an average score of at least 30.0 points in 100 consecutive episodes.
 
-The observation space consists of 33 variables corresponding to position, rotation, velocity, and angular velocities of the arm. Each action is a vector with four numbers, corresponding to torque applicable to two joints. Every entry in the action vector should be a number between -1 and 1.
+The observation space consists of 33 variables corresponding to position, rotation, velocity, and angular velocities of the arm. Each action is a vector with four numbers, corresponding to torque applicable to two joints. Every entry in the action vector should be a floating point number between -1 and 1.
 
-The agent runs on Python 3.6 + PyTorch. The paper that describes the algorithm is ["Double Duel Q-network"](https://arxiv.org/abs/1511.06581) with "Epsilon-Greedy policy" for environment exploration and an "Experience Replay Buffer" as a dynamic dataset for the learning process.
+The agent runs on Python 3.6 + PyTorch. The paper that describes the algorithm is ["DDPG-network"](https://arxiv.org/abs/1509.02971). All the rest of implementation details can be found at: [report.md](https://github.com/drormeir/ReacherRL/blob/master/Report.md)
 
 The original git repo of this project is at:
 https://github.com/udacity/deep-reinforcement-learning/tree/master/p2_navigation
