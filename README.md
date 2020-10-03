@@ -6,6 +6,7 @@
 This project was submitted as part of [Udacity's Deep Reinforcement Learning Nanodegree](https://www.udacity.com/course/deep-reinforcement-learning-nanodegree--nd893) and is a solution to [UnityML "Reacher"](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#reacher)
 
 The purpose of the project is to build and train a single agent that tries to maintain its position at the target location for as many time steps as possible.
+
 ![Trained Agent][image1]
 
 This problem is episodic, where each episode is consists of 1000 steps. The environment provides a reward of +0.1 for each step that the agent's hand is in the goal location, and zero otherwise. Thus, the goal of the agent is to maintain its position at the target location for as many time steps as possible. The minimal requirement for success is to have an average score of at least 30.0 points in 100 consecutive episodes.
