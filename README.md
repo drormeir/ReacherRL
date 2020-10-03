@@ -1,5 +1,5 @@
 [//]: # (Image References)
-[image1]: https://github.com/drormeir/ReacherRL/blob/master/TrainedAgent.gif "Trained Agent"
+[image1]: https://github.com/drormeir/ReacherRL/blob/master/UnityEnvironmentReacher.gif "Trained Agent"
 [image2]: https://user-images.githubusercontent.com/10624937/42386929-76f671f0-8106-11e8-9376-f17da2ae852e.png "Kernel"
 
 # ReacherRL
