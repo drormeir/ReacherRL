@@ -13,7 +13,9 @@ This problem is episodic, where each episode is consists of 1000 steps. The envi
 
 The observation space consists of 33 variables corresponding to position, rotation, velocity, and angular velocities of the arm. Each action is a vector with four numbers, corresponding to torque applicable to two joints. Every entry in the action vector should be a floating point number between -1 and 1.
 
-The agent runs on Python 3.6 + PyTorch. The paper that describes the algorithm is ["DDPG-network"](https://arxiv.org/abs/1509.02971). All the rest of implementation details can be found at: [report.md](https://github.com/drormeir/ReacherRL/blob/master/Report.md)
+The agent runs on Python 3.6 + PyTorch. The paper that describes the algorithm is ["DDPG-network"](https://arxiv.org/abs/1509.02971).
+
+The implementation details, the hyperparameters and the results, can be found at: [report.md](https://github.com/drormeir/ReacherRL/blob/master/Report.md)
 
 The original git repo of this project is at:
 https://github.com/udacity/deep-reinforcement-learning/tree/master/p2_navigation
