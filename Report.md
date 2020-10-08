@@ -7,7 +7,7 @@
 # Reacher Report
 This implementation of DDPG inherits it is a central idea from ["Udacity's bipedal"](https://github.com/udacity/deep-reinforcement-learning/tree/master/ddpg-bipedal)
 
-The problem I solved in this project is calculating the best action for the robotic arm to reach a moving object's location according to the current state. The Unity environment generates a vector of floating-point numbers as the current state and accepts another vector of floating-point numbers as the next action. The state vector contains the measurement values of each part of the robotic arm's position and velocity. Also, it contains the position and velocity of the target object. The action vector represents the power needed to apply to each motor of the arm.
+According to the current state, the problem I solved in this project is calculating the robotic arm's best action to reach a moving object's location. The Unity environment generates a vector of floating-point numbers as the current state and accepts another vector of floating-point numbers as the next action. The state vector contains the measurement values of each part of the robotic arm's position and velocity. Also, it contains the position and velocity of the target object. The action vector represents the power needed to apply to each motor of the arm.
 
 We chose the DDPG algorithm to solve this problem. It consists of two types of networks: The Actor and the Critic, where each one of them has two instances: the local and the target.
 
@@ -27,7 +27,7 @@ The class `Critic` can have the entire network architecture as a parameter that 
 The Actor-network takes the state vector as an input and computes the best action vector to take for the next step. This chart describes its architecture:
 ![Actor Network][image1]
 
-The final product of the DDPG algorithm is a trained Actor-network, which can calculate the best action for the current state in the inference stage. However, contrary to supervised learning, we do not have any human annotators that can teach the network the best action in RL.
+The final product of the DDPG algorithm is a trained Actor-network, which can calculate the best action for the current state in the inference stage. However, contrary to supervised learning, we do not have any human annotators who can teach the network the RL's best action.
 
 ##### Critic Network
 The Critic-network receives two inputs: A state vector and an action vector. It calculates the total value of the next state directly without calculating the next state explicitly. This chart describes its architecture:
@@ -59,7 +59,7 @@ The training/update phase of the DDPG algorithm has several stages:
 2. Train the Actor local network:
 * Set the states from the mini-batch into the Actor input and also into the Critic input.
 * Connect the output actions from the Actor-network into the input actions of the Critic.
-* Perform Gradient Ascent on collaborative networks trying to maximize the mean output values from the Critic network while letting only the Actor's weights change during this process. The weights of the Critic are frozen.
+* Perform Gradient Ascent on collaborative networks to maximize the mean output values from the Critic network while letting only the Actor's weights change during this process. The weights of the Critic are frozen.
 3. Perform Soft Update on both of the target networks with a small weight (tau) on the local networks.
 
 ### unity_environment_wrapper.py
@@ -67,7 +67,7 @@ The `unity_env` class inherits from the `UnityEnvironment` class and encapsulate
 
 The `step` member function gives a better API for the user to interact with the environment. It mimics the simple `step` function API of the `OpenAI-Gym` environment class.
 
-This class also keep tracking after the whole scores graph and after the most recent scores window. This window score is a `deque` object with a maximum length of 100. The member function `_recalc_curr_window_score` calculates the average of the window, its standard deviation, and a composite score equal to the average minus standard deviation. 
+This class also keep tracking after the whole scores graph and after the most recent scores window. This window score is a `deque` object with a maximum length of 100. The member function `_recalc_curr_window_score` calculates the window's average, standard deviation, and a composite score equal to the average minus standard deviation. 
 
 Moreover, this class compares each new completed episode's score against the previous average window score and determines its improvement status. This calculation is in the member function: `train` and the resulted status has three possible values:
 * A status of +1 means "training should continue": This module checks for two things: First, if the recently completed episode score is better than the previous average score. Second, the current window's composite score is better than the previous window's composite score. In case both are true, then the environment will signal that training should continue.
@@ -108,19 +108,19 @@ The training process was performed in the Jupyter notebook: `Continuous_Control.
 At the bottom of this notebook, one can find the score graph.
 
 ##### Hyperparameters summary
-Most of the hyperparameters where not tuned, I tested few combinations to find better and faster results, but without any extensive research.
+Most of the hyperparameters were not tuned. We tested a few combinations to find better and faster results, but without any extensive research.
 
 General parameters:
-* random_seed        = 1       # A global seed for random numbers generator. Both noise process and the replay buffer use it. Setting this parameter enables reproducible results.
+* random_seed        = 1       # A global seed for random numbers generator. Both the noise process and the replay buffer use it. Setting this parameter enables reproducible results.
 * max_num_episodes   = 10000   # Maximum number of episodes for entire learning process.
-* score_window_size  = 100     # Moving average window size for accumulating scores and calcualtion of average score
+* score_window_size  = 100     # Moving average window size for accumulating scores and calculation of average score
 * num_episode_search = 500     # maximum number of episode to search for a better score
 
 DDPG learning parameters:
 * gamma              = 0.95    # discount factor of future rewards for the Bellman equation. A number close to one means future rewards have high importance.
-* tau                = 0.001   # soft update factor. Each training step, the local networks are blended into the target networks with very small weight.
+* tau                = 0.001   # soft update factor. In each training step, we blend local networks into the target networks with minimal weight.
 * update_every       = 20      # update networks during episode every number of steps.
-* update_times       = 4       # when updating the networks take several mini-batches from the replay buffer.
+* update_times       = 4       # when updating the networks, take several mini-batches from the replay buffer.
 * lr_actor           = 0.0001  # learning rate of the Actor-network
 * lr_critic          = 0.001   # learning rate of the Critic-network
 
@@ -133,10 +133,10 @@ Networks architecture:
 * critic_arch        = [['b', 128], ['b', 64], ['b', 'r', 256, 'b', 'r']]
 
 Parameters for the replay buffer:
-* replay_buffer_size = 1000000 # the maximum number of tuples that can be hold in the replay buffer.
-* replay_batch_size  = 128     # mini batch size for training the actor critic networks.
-* no_reward_value    = -0.1    # For learning purpose of the Critic-network: What should be the reward of "no reward" step? This influences the Critic-network to avoid "no reward" moves, and focus on moves that brings positive reward.
-* no_reward_dropout  = 0.9     # Especially at the begining, there is an "overflow" of steps with negative rewards, which obscures the network from learning the best action. We create this parameter to remove most of the bad moves from the replay buffer in order to balance the amount of "good" and "bad" moves. This method speeds up the learning process.
+* replay_buffer_size = 1000000 # the maximum number of tuples that can behold in the replay buffer.
+* replay_batch_size  = 128     # mini-batch size for training the actor-critic networks.
+* no_reward_value    = -0.1    # An alternative value when the program encounters a zero reward. Overriding zero reward with a negative one will influence the Critic-network to avoid "playing safe" with zero rewards moves and focus on moves that bring positive reward.
+* no_reward_dropout  = 0.9     # Especially initially, there is an "overflow" of steps with negative rewards, which obscures the network from learning the best action. We create this parameter to remove most of the bad moves from the replay buffer to balance the amount of "good" and "bad" moves. This method speeds up the learning process.
 
 
 OU noise parameters:
