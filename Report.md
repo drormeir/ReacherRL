@@ -111,34 +111,40 @@ At the bottom of this notebook, one can find the score graph.
 Most of the hyperparameters where not tuned, I tested few combinations to find better and faster results, but without any extensive research.
 
 General parameters:
-* random_seed        = 1 # A global seed for random numbers generator. Both noise process and the replay buffer use it. Setting this parameter enables reproducible results.
+* random_seed        = 1       # A global seed for random numbers generator. Both noise process and the replay buffer use it. Setting this parameter enables reproducible results.
+* max_num_episodes   = 10000   # Maximum number of episodes for entire learning process.
+* score_window_size  = 100     # Moving average window size for accumulating scores and calcualtion of average score
+* num_episode_search = 500     # maximum number of episode to search for a better score
+
+DDPG learning parameters:
+* gamma              = 0.95    # discount factor of future rewards for the Bellman equation. A number close to one means future rewards have high importance.
+* tau                = 0.001   # soft update factor. Each training step, the local networks are blended into the target networks with very small weight.
+* update_every       = 20      # update networks during episode every number of steps.
+* update_times       = 4       # when updating the networks take several mini-batches from the replay buffer.
+* lr_actor           = 0.0001  # learning rate of the Actor-network
+* lr_critic          = 0.001   # learning rate of the Critic-network
+
+Networks architecture:
+* 'b' means: Batch Norm
+* 'r' means: Relu
+* number means: size of dense layer
+
+* actor_arch         = ['b', 128, 'b', 'r', 256, 'b', 'r']
+* critic_arch        = [['b', 128], ['b', 64], ['b', 'r', 256, 'b', 'r']]
 
 Parameters for the replay buffer:
 * replay_buffer_size = 1000000 # the maximum number of tuples that can be hold in the replay buffer.
-* replay_batch_size  = 128 # mini batch size for training the actor critic networks.
+* replay_batch_size  = 128     # mini batch size for training the actor critic networks.
+* no_reward_value    = -0.1    # For learning purpose of the Critic-network: What should be the reward of "no reward" step? This influences the Critic-network to avoid "no reward" moves, and focus on moves that brings positive reward.
+* no_reward_dropout  = 0.9     # Especially at the begining, there is an "overflow" of steps with negative rewards, which obscures the network from learning the best action. We create this parameter to remove most of the bad moves from the replay buffer in order to balance the amount of "good" and "bad" moves. This method speeds up the learning process.
 
-DDPG learning parameters:
-* gamma              = 0.95 # discount factor of future rewards for the Bellman equation. A number ckose to one means future rewards have high importance.
-* tau                = 0.001 # soft update factor. Each training step, the local networks are blended into the target networks with very small weight.
-* update_every       = 20 # 
-update_times       = 4
-lr_actor           = 0.0001
-lr_critic          = 0.001
 
 OU noise parameters:
-* noise_sigma        = 0.2
-* noise_theta        = 0.15
+* noise_sigma        = 0.2     # Standard deviation of the noise values
+* noise_theta        = 0.15    # Mean reverting noise factor
+* noise_minimal      = 0.01    # exploration/exploitation minimal value
+* noise_decay        = 0.99    # exploration/exploitation decay factor
 
-no_reward_value    = -0.1
-no_reward_dropout  = 0.9
-actor_arch         = ['b', 128, 'b', 'r', 256, 'b', 'r']
-critic_arch        = [['b', 128], ['b', 64], ['b', 'r', 256, 'b', 'r']]
-
-noise_minimal      = 0.01
-noise_decay        = 0.99
-num_episode_search = 500
-max_num_episodes   = 10000
-score_window_size  = 100
 
 ## Challenges and further discussion
 There are several challenges when trying to estimate the current score of the agent:
