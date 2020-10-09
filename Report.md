@@ -4,6 +4,7 @@
 [image3]: https://github.com/drormeir/ReacherRL/blob/master/training_Actor.jpg "Training Actor"
 [image4]: https://github.com/drormeir/ReacherRL/blob/master/training_Critic.jpg "Training Critic"
 [image5]: https://github.com/drormeir/ReacherRL/blob/master/results_graph.png "Results Graph"
+[image6]: https://github.com/drormeir/ReacherRL/blob/master/UnityEnvironmentReacher.gif "Trained Agent"
 
 # Reacher Report
 This implementation of DDPG inherits it is a central idea from ["Udacity's bipedal"](https://github.com/udacity/deep-reinforcement-learning/tree/master/ddpg-bipedal)
@@ -16,6 +17,8 @@ We chose the DDPG algorithm to solve this problem. It consists of two types of n
 [->Files](#projects-source-files-description)
 [->Hyperparameters](#hyperparameters-summary)
 [->Results](#results)
+
+![Trained Agent][image6]
 
 # The DDPG Algorithm
 The training process was performed in the Jupyter notebook: `Continuous_Control.ipynb.`
