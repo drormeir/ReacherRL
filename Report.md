@@ -3,6 +3,7 @@
 [image2]: https://github.com/drormeir/ReacherRL/blob/master/Critic.jpg "Critic Network"
 [image3]: https://github.com/drormeir/ReacherRL/blob/master/training_Actor.jpg "Training Actor"
 [image4]: https://github.com/drormeir/ReacherRL/blob/master/training_Critic.jpg "Training Critic"
+[image5]: https://github.com/drormeir/ReacherRL/blob/master/results_graph.png "Results Graph"
 
 # Reacher Report
 This implementation of DDPG inherits it is a central idea from ["Udacity's bipedal"](https://github.com/udacity/deep-reinforcement-learning/tree/master/ddpg-bipedal)
@@ -11,17 +12,14 @@ According to the current state, the problem I solved in this project is calculat
 
 We chose the DDPG algorithm to solve this problem. It consists of two types of networks: The Actor and the Critic, where each one of them has two instances: the local and the target.
 
-# Projects Source Files Description
+[->DDPG](#the-ddpg-algorithm)
+[->Files](#projects-source-files-description)
+[->Hyperparameters](#hyperparameters-summary)
+[->Results](#results)
 
-### actor_critic_model.py
-This file contains the architecture of the Actor-network and the Critic-network.
-
-The class `Actor` receives its entire network architecture as a list in one of its parameters.
-
-The class `Critic` can have the entire network architecture as a parameter that is consists of 3 lists:
-* The first list is the layers architecture for the State vector input.
-* The second list is the layers architecture for the Action vector input.
-* The third list is the layers architecture after the union of the first two.
+# The DDPG Algorithm
+The training process was performed in the Jupyter notebook: `Continuous_Control.ipynb.`
+At the bottom of this notebook, one can find the score graph.
 
 ##### Actor Network
 The Actor-network takes the state vector as an input and computes the best action vector to take for the next step. This chart describes its architecture:
@@ -32,10 +30,6 @@ The final product of the DDPG algorithm is a trained Actor-network, which can ca
 ##### Critic Network
 The Critic-network receives two inputs: A state vector and an action vector. It calculates the total value of the next state directly without calculating the next state explicitly. This chart describes its architecture:
 ![Critic Network][image2]
-
-### DDPG_agent.py
-The class `DDPG_agent` contains the implementation of the RL agent's algorithm. 
-Every 20 steps, the agent samples four mini-batches from the Replay Buffer and trains the networks according to this data.
 
 ##### Training the Actor-Network
 In order to train the Actor-network, first, we need to train and freeze a Critic network, then we combine it with the Actor-network as in the following chart:
@@ -61,6 +55,24 @@ The training/update phase of the DDPG algorithm has several stages:
 * Connect the output actions from the Actor-network into the input actions of the Critic.
 * Perform Gradient Ascent on collaborative networks to maximize the mean output values from the Critic network while letting only the Actor's weights change during this process. The weights of the Critic are frozen.
 3. Perform Soft Update on both of the target networks with a small weight (tau) on the local networks.
+
+[Home](#reacher-report)
+
+# Projects Source Files Description
+
+### actor_critic_model.py
+This file contains the architecture of the Actor-network and the Critic-network.
+
+The class `Actor` receives its entire network architecture as a list in one of its parameters.
+
+The class `Critic` can have the entire network architecture as a parameter that is consists of 3 lists:
+* The first list is the layers architecture for the State vector input.
+* The second list is the layers architecture for the Action vector input.
+* The third list is the layers architecture after the union of the first two.
+
+### DDPG_agent.py
+The class `DDPG_agent` contains the implementation of the RL agent's algorithm. 
+Every 20 steps, the agent samples four mini-batches from the Replay Buffer and trains the networks according to this data.
 
 ### unity_environment_wrapper.py
 The `unity_env` class inherits from the `UnityEnvironment` class and encapsulates the brain's index and brain's name within for clarity.
@@ -102,12 +114,9 @@ The OU-Noise process has three parameters:
 
 The agent starts exploring the environment space using the noise from the OU process. As the training goes on, the Sigma parameters go to zero. The Theta parameter goes to one to exploit the knowledge from the trained networks.
 
+[Home](#reacher-report)
 
-## The Training Process
-The training process was performed in the Jupyter notebook: `Continuous_Control.ipynb.`
-At the bottom of this notebook, one can find the score graph.
-
-##### Hyperparameters summary
+## Hyperparameters summary
 Most of the hyperparameters were not tuned. We tested a few combinations to find better and faster results, but without any extensive research.
 
 General parameters:
@@ -145,13 +154,23 @@ OU noise parameters:
 * noise_minimal      = 0.01    # exploration/exploitation minimal value
 * noise_decay        = 0.99    # exploration/exploitation decay factor
 
+[Home](#reacher-report)
+
+## Results
+
+The goal for this project is an average score of 30.0 during 100 consecutive episodes. The program reached its goal in 1200 episodes.
+
+![Results Graph][image5]
+
+For each episode, we calculated the average score of the last recent 100 episodes. Hence, there is some implicit lagging effect. This number does not represent the current real score because the training process may change the agent's behavior during each step. At first 500 episodes or so, the agent performance was poor with almost no improvement, then suddenly it discovered the trick and improved very fast till episode 1200. We decided to continue the training process to see until the process "maxed out" after 2350 episodes with an average score of 48.9
+
+[Home](#reacher-report)
 
 ## Challenges and further discussion
 There are several challenges when trying to estimate the current score of the agent:
 
 * After each several steps, the training process performs a single learning phase with a mini-batch. It is impossible to have an exact measurement of the agent's current score to understand if we passed beyond the peak performance. Hence, the environment class uses the episode's score as a proxy to the exact value.
 * The training process should stop when the agent reaches its peak performance. However, the moving average lags behind the real unknown average score. The program can calculate the correct average score by performing a real test (the one in `test` member function). The simple test process does not use random exploration moves and does not learn any new actions' values. The resources to make a real test after each episode are too scarce. Hence there is no reasonable solution besides the lagging moving average.
-* I achieved the environment goal of score 30.0 after 1200 episode and continued the training process until it maxed out after 2350 episode with an average score of 48.9
 
 
 ## Future work:
