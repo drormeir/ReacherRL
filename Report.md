@@ -9,7 +9,7 @@
 # Reacher Report
 This implementation of DDPG inherits it is a central idea from ["Udacity's bipedal"](https://github.com/udacity/deep-reinforcement-learning/tree/master/ddpg-bipedal)
 
-According to the current state, the problem I solved in this project is calculating the robotic arm's best action to reach a moving object's location. The Unity environment generates a vector of floating-point numbers as the current state and accepts another vector of floating-point numbers as the next action. The state vector contains the measurement values of each part of the robotic arm's position and velocity. Also, it contains the position and velocity of the target object. The action vector represents the power needed to apply to each motor of the arm.
+This project aims to calculate the best policy for a smart agent that moves a robotic arm to reach a moving object's location. The policy's input is the current state of the environment, and the output is the agent's next action to perform. The Unity environment generates a vector of floating-point numbers as the current state and accepts another vector of floating-point numbers as the next action. The state vector contains the measurement values of each part of the robotic arm's position and velocity. Also, it contains the position and velocity of the target object. The action vector represents the power needed to apply to each motor of the arm.
 
 We chose the DDPG algorithm to solve this problem. It consists of two types of networks: The Actor and the Critic, where each one of them has two instances: the local and the target.
 
