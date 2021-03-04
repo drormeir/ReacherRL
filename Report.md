@@ -25,24 +25,24 @@ The training process was performed in the Jupyter notebook: `Continuous_Control.
 At the bottom of this notebook, one can find the score graph.
 
 ##### Actor Network
-The Actor-network takes the state vector as an input and computes the best action vector to take for the next step. This chart describes its architecture:
+The Actor-network takes the state vector as an input and computes the best action vector to take for the next step. This chart describes its architecture:<br/><br/>
 ![Actor Network][image1]
 
 The final product of the DDPG algorithm is a trained Actor-network, which can calculate the best action for the current state in the inference stage. However, contrary to supervised learning, we do not have any human annotators who can teach the network the RL's best action.
 
 ##### Critic Network
-The Critic-network receives two inputs: A state vector and an action vector. It calculates the total value of the next state directly without calculating the next state explicitly. This chart describes its architecture:
+The Critic-network receives two inputs: A state vector and an action vector. It calculates the total value of the next state directly without calculating the next state explicitly. This chart describes its architecture:<br/><br/>
 ![Critic Network][image2]
 
 ##### Training the Actor-Network
-In order to train the Actor-network, first, we need to train and freeze a Critic network, then we combine it with the Actor-network as in the following chart:
+In order to train the Actor-network, first, we need to train and freeze a Critic network, then we combine it with the Actor-network as in the following chart:<br/><br/>
 ![Training Actor][image3]
 
 The only input for this mini-training process is a state vector of values. The Actor-network calculates the best action and pass it into the Critic-network. There it also uses the original state vector to calculate the final value of the input state. We use that result value as the target function for maximizing in the Back Propagation process. The classic process is to minimize a function. Hence, we give the Back Propagation process a minus sign so it would be able to minimize the final negative value, which is equal to maximizing the positive value.
 
 ##### Training the Critic Network
 
-As mentioned earlier, A Critic-network should calculate the couple's next state's value: state-action. On the other hand, a couple of Actor-Critic networks can calculate a state value assuming using the best action implicitly. Hence taking a replay buffer containing state, action, next-state gives us the necessary data for training the Critic-network. On the left side of the equation, we put the Critic-network result from the state-action values. On the right side of the equation, we put the next state value result using a constant Actor-Critic couple. Adding the rest of the data from the replay buffer to the right-hand side, we get the Bellman equation.
+As mentioned earlier, A Critic-network should calculate the couple's next state's value: state-action. On the other hand, a couple of Actor-Critic networks can calculate a state value assuming using the best action implicitly. Hence taking a replay buffer containing state, action, next-state gives us the necessary data for training the Critic-network. On the left side of the equation, we put the Critic-network result from the state-action values. On the right side of the equation, we put the next state value result using a constant Actor-Critic couple. Adding the rest of the data from the replay buffer to the right-hand side, we get the Bellman equation.<br/><br/>
 ![Training Critic][image4]
 
 ##### Summarizing the training process of DDPG
@@ -161,8 +161,7 @@ OU noise parameters:
 
 ## Results
 
-The goal for this project is an average score of 30.0 during 100 consecutive episodes. The program reached its goal in 1200 episodes.
-
+The goal for this project is an average score of 30.0 during 100 consecutive episodes. The program reached its goal in 1200 episodes.<br/><br/>
 ![Results Graph][image5]
 
 For each episode, we calculated the average score of the last recent 100 episodes. Hence, there is some implicit lagging effect. This number does not represent the current real score because the training process may change the agent's behavior during each step. At first 500 episodes or so, the agent performance was poor with almost no improvement, then suddenly it discovered the trick and improved very fast till episode 1200. We decided to continue the training process to see until the process "maxed out" after 2350 episodes with an average score of 48.9
