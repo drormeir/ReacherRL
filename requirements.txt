@@ -1,4 +1,4 @@
-﻿asn1crypto==1.3.0
+asn1crypto==1.3.0
 certifi==2022.12.7
 cffi==1.14.0
 chardet==3.0.4
@@ -12,7 +12,7 @@ pycparser==2.20
 pyOpenSSL==19.1.0
 PySocks==1.7.1
 pywin32==301
-requests==2.23.0
+requests==2.31.0
 ruamel-yaml==0.15.87
 six==1.14.0
 tqdm==4.43.0
