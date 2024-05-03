@@ -15,7 +15,7 @@ pywin32==301
 requests==2.31.0
 ruamel-yaml==0.15.87
 six==1.14.0
-tqdm==4.43.0
+tqdm
 urllib3
 win-inet-pton==1.1.0
 wincertstore==0.2
