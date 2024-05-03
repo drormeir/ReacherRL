@@ -5,7 +5,7 @@ chardet==3.0.4
 conda==4.8.3
 conda-package-handling==1.6.0
 cryptography
-idna==2.9
+idna
 menuinst==1.4.16
 pycosat==0.6.3
 pycparser==2.20
