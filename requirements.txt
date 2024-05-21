@@ -12,7 +12,7 @@ pycparser==2.20
 pyOpenSSL==19.1.0
 PySocks==1.7.1
 pywin32==301
-requests==2.31.0
+requests==2.32.0
 ruamel-yaml==0.15.87
 six==1.14.0
 tqdm
