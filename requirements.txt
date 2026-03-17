@@ -9,7 +9,7 @@ idna
 menuinst==1.4.16
 pycosat==0.6.3
 pycparser==2.20
-pyOpenSSL==19.1.0
+pyOpenSSL
 PySocks==1.7.1
 pywin32==301
 requests
